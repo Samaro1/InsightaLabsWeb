@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const apiBase = process.env.INSIGHTA_API_BASE || 'https://stage1be-production.up.railway.app';
+const apiBase = process.env.INSIGHTA_API_BASE || '';
 
 const content = `// Auto-generated at build time. Do not edit.
 window.INSIGHTA_API_BASE = "${apiBase}";
