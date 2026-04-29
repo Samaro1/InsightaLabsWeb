@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Search Profiles - Insighta</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <style>
+    /* ── Query chips ── */
+    .chips-label {
+      font-size: 0.75rem;
+      color: var(--color-text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin: 0 0 0.5rem;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-bottom: 1.5rem;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.8rem;
+      padding: 0.3rem 0.75rem;
+      border-radius: 20px;
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-border);
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+      user-select: none;
+    }
+    .chip:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      background: rgba(37, 99, 235, 0.07);
+      transform: translateY(-1px);
+    }
+    .chip:active {
+      transform: translateY(0);
+    }
+    .chip svg {
+      width: 11px;
+      height: 11px;
+      flex-shrink: 0;
+      opacity: 0.5;
+    }
+    .chip:hover svg {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <main class="container">
+    <h1>Search profiles</h1>
+
+    <!-- Search box -->
+    <div class="search-box">
+      <input
+        type="text"
+        id="query"
+        placeholder="e.g. young females from Nigeria"
+        autocomplete="off"
+      />
+      <button onclick="performSearch()">Search</button>
+    </div>
+
+    <!-- Example query chips -->
+    <p class="chips-label">Try an example</p>
+    <div class="chips" id="chips"></div>
+
+    <!-- Results table -->
+    <table id="resultsTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Gender</th>
+          <th>Age</th>
+          <th>Country</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="5" class="loading">Enter a query and click search</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <button onclick="prevPage()" id="prevBtn" disabled>← Previous</button>
+      <span id="pageInfo">No results</span>
+      <button onclick="nextPage()" id="nextBtn" disabled>Next →</button>
+    </div>
+  </main>
+  <script src="/js/env.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/utils.js"></script>
+
+  <script>
+    // ─── Example queries ────────────────────────────────────
+    const EXAMPLE_QUERIES = [
+      'young males from Nigeria',
+      'adult females from Kenya',
+      'seniors above 65',
+      'teenagers from Ghana',
+      'females above 30',
+      'young people from South Africa',
+      'adult males from India',
+      'women under 25',
+      'elderly from Egypt',
+      'men from Uganda',
+    ];
+
+    function buildChips() {
+      const container = document.getElementById('chips');
+      // Arrow icon — indicates "run this query"
+      const arrowSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="12 5 19 12 12 19"/>
+        </svg>`;
+
+      container.innerHTML = EXAMPLE_QUERIES.map(q =>
+        `<button class="chip" onclick="useChip(${JSON.stringify(q)})">
+          ${arrowSVG}${q}
+        </button>`
+      ).join('');
+    }
+
+    function useChip(query) {
+      document.getElementById('query').value = query;
+      performSearch();
+    }
+
+    // ─── State ──────────────────────────────────────────────
+    let state = {
+      currentPage: 1,
+      totalPages:  0,
+      query:       '',
+    };
+
+    // ─── Search ─────────────────────────────────────────────
+    async function performSearch() {
+      const query = document.getElementById('query').value.trim();
+      if (!query) {
+        document.getElementById('query').focus();
+        return;
+      }
+      state.query       = query;
+      state.currentPage = 1;
+      await fetchResults();
+    }
+
+    async function fetchResults() {
+      if (!state.query) return;
+
+      const params = buildParams({
+        q:     state.query,
+        page:  state.currentPage,
+        limit: CONFIG.DEFAULT_LIMIT,
+      });
+
+      showLoading('resultsTable', 'Searching…');
+
+      try {
+        const data = await apiRequest(`/api/profiles/search?${params}`);
+        renderResults(data.data || []);
+        updatePagination(data);
+      } catch (err) {
+        showError('resultsTable', err.message);
+      }
+    }
+
+    function renderResults(profiles) {
+      const tbody = document.querySelector('#resultsTable tbody');
+      tbody.innerHTML = '';
+
+      if (!profiles.length) {
+        tbody.innerHTML =
+          '<tr><td colspan="5" class="loading">No results found — try a different query</td></tr>';
+        return;
+      }
+
+      profiles.forEach(profile => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${formatUUID(profile.id)}</td>
+          <td><a href="/profile.html?id=${profile.id}" style="text-transform:capitalize">${profile.name}</a></td>
+          <td style="text-transform:capitalize">${profile.gender || '—'}</td>
+          <td>${profile.age ?? '—'}</td>
+          <td>${profile.country_name || profile.country_id || '—'}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function updatePagination(data) {
+      state.totalPages  = data.total_pages || 0;
+      state.currentPage = data.page        || 1;
+
+      const total = data.total ?? 0;
+      document.getElementById('pageInfo').textContent =
+        `Page ${state.currentPage} of ${state.totalPages} (${total.toLocaleString()} result${total !== 1 ? 's' : ''})`;
+
+      document.getElementById('prevBtn').disabled = state.currentPage <= 1;
+      document.getElementById('nextBtn').disabled = state.currentPage >= state.totalPages;
+    }
+
+    function prevPage() { if (state.currentPage > 1)               { state.currentPage--; fetchResults(); } }
+    function nextPage() { if (state.currentPage < state.totalPages) { state.currentPage++; fetchResults(); } }
+
+    // Enter key triggers search
+    document.getElementById('query').addEventListener('keydown', e => {
+      if (e.key === 'Enter') performSearch();
+    });
+
+    // ─── Init ───────────────────────────────────────────────
+    async function initSearch() {
+      await initPage();
+      buildChips();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initSearch);
+    } else {
+      initSearch();
+    }
+  </script>
+</body>
+</html>
