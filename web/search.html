@@ -101,12 +101,13 @@
       <button onclick="nextPage()" id="nextBtn" disabled>Next →</button>
     </div>
   </main>
-  <script src="/js/env.js"></script>
-  <script src="/js/config.js"></script>
-  <script src="/js/utils.js"></script>
+  
+<script src="/js/env.js"></script>
+<script src="/js/config.js"></script>
+<script src="/js/utils.js"></script>
+<script src="/js/auth.js"></script>
 
-  <script>
-    // ─── Example queries ────────────────────────────────────
+<script>
     const EXAMPLE_QUERIES = [
       'young males from Nigeria',
       'adult females from Kenya',
@@ -120,9 +121,10 @@
       'men from Uganda',
     ];
 
+    let authReady = false;
+
     function buildChips() {
       const container = document.getElementById('chips');
-      // Arrow icon — indicates "run this query"
       const arrowSVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="5" y1="12" x2="19" y2="12"/>
@@ -137,19 +139,19 @@
     }
 
     function useChip(query) {
+      if (!authReady) return;
       document.getElementById('query').value = query;
       performSearch();
     }
 
-    // ─── State ──────────────────────────────────────────────
     let state = {
       currentPage: 1,
       totalPages:  0,
       query:       '',
     };
 
-    // ─── Search ─────────────────────────────────────────────
     async function performSearch() {
+      if (!authReady) return;
       const query = document.getElementById('query').value.trim();
       if (!query) {
         document.getElementById('query').focus();
@@ -218,14 +220,13 @@
     function prevPage() { if (state.currentPage > 1)               { state.currentPage--; fetchResults(); } }
     function nextPage() { if (state.currentPage < state.totalPages) { state.currentPage++; fetchResults(); } }
 
-    // Enter key triggers search
     document.getElementById('query').addEventListener('keydown', e => {
       if (e.key === 'Enter') performSearch();
     });
 
-    // ─── Init ───────────────────────────────────────────────
     async function initSearch() {
       await initPage();
+      authReady = true;
       buildChips();
     }
 
@@ -234,6 +235,6 @@
     } else {
       initSearch();
     }
-  </script>
+</script>
 </body>
 </html>
