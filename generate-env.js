@@ -6,5 +6,5 @@ const content = `// Auto-generated at build time. Do not edit.
 window.INSIGHTA_API_BASE = "${apiBase}";
 `;
 
-fs.writeFileSync('./js/env.js', content);
+fs.writeFileSync('./web/js/env.js', content);
 console.log('env.js generated with API_BASE:', apiBase);
