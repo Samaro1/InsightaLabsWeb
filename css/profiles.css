@@ -1,0 +1,127 @@
+    .filters-footer {
+      grid-column: 1 / -1;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .filters-footer .btn-apply {
+      flex: 1;
+    }
+    .btn-export {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.75rem 1.1rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: var(--border-radius);
+      cursor: pointer;
+      transition: var(--transition);
+      white-space: nowrap;
+      /* secondary style — outline, not filled */
+      background: transparent;
+      border: 1px solid var(--color-border);
+      color: var(--color-text-secondary);
+    }
+    .btn-export:hover:not(:disabled) {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      background: rgba(37, 99, 235, 0.07);
+      transform: translateY(-1px);
+      box-shadow: none;
+    }
+    .btn-export:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-export svg {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+    .btn-export:hover:not(:disabled) svg {
+      transform: translateY(2px);
+    }
+
+    /* ── Spinner inside export button ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .export-spinner {
+      width: 13px;
+      height: 13px;
+      border: 2px solid rgba(148, 163, 184, 0.35);
+      border-top-color: var(--color-text-secondary);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ── Toast notification ── */
+    .toast {
+      position: fixed;
+      bottom: 1.75rem;
+      right: 1.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.7rem 1.1rem;
+      border-radius: var(--border-radius);
+      font-size: 0.88rem;
+      font-weight: 500;
+      z-index: 500;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.22s ease, transform 0.22s ease;
+      max-width: 320px;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .toast.success {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-success);
+      color: var(--color-success);
+    }
+    .toast.error {
+      background: var(--color-bg-card);
+      border: 1px solid var(--color-error);
+      color: var(--color-error);
+    }
+    .toast svg {
+      width: 15px;
+      height: 15px;
+      flex-shrink: 0;
+    }
+
+    /* ── Active-filter pill strip ── */
+    .filter-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 1rem;
+      min-height: 0;
+    }
+    .filter-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 20px;
+      background: rgba(37, 99, 235, 0.1);
+      border: 1px solid rgba(37, 99, 235, 0.25);
+      color: var(--color-primary);
+    }
+    .filter-pill button {
+      all: unset;
+      cursor: pointer;
+      font-size: 0.9rem;
+      line-height: 1;
+      color: var(--color-primary);
+      opacity: 0.7;
+      padding: 0 1px;
+    }
+    .filter-pill button:hover { opacity: 1; }
