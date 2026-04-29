@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profiles - Insighta</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="stylesheet" href="/css/profiles.css" />
+
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <main class="container">
+    <h1>Profiles</h1>
+
+    <!-- Filters Section -->
+    <div class="filters">
+      <input type="text"   id="gender"    placeholder="Gender (male/female)"     autocomplete="off" />
+      <input type="text"   id="country"   placeholder="Country code (e.g. NG)"   autocomplete="off" />
+      <input type="text"   id="age_group" placeholder="Age group (e.g. adult)"   autocomplete="off" />
+      <input type="number" id="min_age"   placeholder="Min age"  min="0"         autocomplete="off" />
+      <input type="number" id="max_age"   placeholder="Max age"  min="0"         autocomplete="off" />
+
+      <select id="sort_by" autocomplete="off">
+        <option value="">Sort by…</option>
+        <option value="age">Age</option>
+        <option value="created_at">Created at</option>
+        <option value="gender_probability">Gender probability</option>
+      </select>
+
+      <select id="order" autocomplete="off">
+        <option value="asc">Ascending</option>
+        <option value="desc">Descending</option>
+      </select>
+
+      <!-- Apply + Export share one footer row -->
+      <div class="filters-footer">
+        <button class="btn-apply" onclick="applyFilters()">Apply filters</button>
+        <button class="btn-export" id="exportBtn" onclick="exportCSV()" title="Export current filters as CSV">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Active filter pills -->
+    <div class="filter-pills" id="filterPills"></div>
+
+    <!-- Results Table -->
+    <table id="profilesTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Gender</th>
+          <th>Age</th>
+          <th>Country</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="6" class="loading">Loading profiles…</td></tr>
+      </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <button onclick="prevPage()" id="prevBtn" disabled>← Previous</button>
+      <span id="pageInfo">-</span>
+      <button onclick="nextPage()" id="nextBtn" disabled>Next →</button>
+    </div>
+  </main>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/js/env.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/auth.js"></script>
+
+  <script>
+    // ─── State ──────────────────────────────────────────────
+    let state = {
+      currentPage: 1,
+      totalPages:  0,
+      filters:     {},
+    };
+
+    // ─── Filter helpers ──────────────────────────────────────
+    const FILTER_LABELS = {
+      gender:    'Gender',
+      country_id:'Country',
+      age_group: 'Age group',
+      min_age:   'Min age',
+      max_age:   'Max age',
+      sort_by:   'Sort',
+      order:     'Order',
+    };
+
+    function readFilters() {
+      return {
+        gender:     document.getElementById('gender').value.trim(),
+        country_id: document.getElementById('country').value.trim(),
+        age_group:  document.getElementById('age_group').value.trim(),
+        min_age:    document.getElementById('min_age').value.trim(),
+        max_age:    document.getElementById('max_age').value.trim(),
+        sort_by:    document.getElementById('sort_by').value,
+        order:      document.getElementById('order').value,
+      };
+    }
+
+    function activeFilters(filters) {
+      // Order "asc" with no sort_by is just a default — skip showing it
+      return Object.entries(filters).filter(([k, v]) => {
+        if (!v) return false;
+        if (k === 'order' && !filters.sort_by) return false;
+        return true;
+      });
+    }
+
+    function renderPills(filters) {
+      const pills = document.getElementById('filterPills');
+      const active = activeFilters(filters);
+      if (!active.length) { pills.innerHTML = ''; return; }
+
+      pills.innerHTML = active.map(([k, v]) =>
+        `<span class="filter-pill">
+          ${FILTER_LABELS[k] || k}: <strong>${v}</strong>
+          <button onclick="clearFilter('${k}')" aria-label="Remove ${FILTER_LABELS[k] || k} filter">×</button>
+        </span>`
+      ).join('');
+    }
+
+    function clearFilter(key) {
+      const inputMap = {
+        gender:     'gender',
+        country_id: 'country',
+        age_group:  'age_group',
+        min_age:    'min_age',
+        max_age:    'max_age',
+      };
+      if (inputMap[key]) {
+        document.getElementById(inputMap[key]).value = '';
+      } else if (key === 'sort_by') {
+        document.getElementById('sort_by').value = '';
+      } else if (key === 'order') {
+        document.getElementById('order').value = 'asc';
+      }
+      applyFilters();
+    }
+
+    // ─── Apply & fetch ───────────────────────────────────────
+    function applyFilters() {
+      state.filters = readFilters();
+      state.currentPage = 1;
+      renderPills(state.filters);
+      fetchProfiles();
+    }
+
+    async function fetchProfiles() {
+      const params = buildParams({
+        page:  state.currentPage,
+        limit: CONFIG.DEFAULT_LIMIT,
+        ...state.filters,
+      });
+
+      showLoading('profilesTable', 'Loading profiles…');
+
+      try {
+        const data = await apiRequest(`/api/profiles?${params}`);
+        renderProfiles(data.data || []);
+        updatePagination(data);
+      } catch (err) {
+        showError('profilesTable', err.message);
+      }
+    }
+
+    function renderProfiles(profiles) {
+      const tbody = document.querySelector('#profilesTable tbody');
+      tbody.innerHTML = '';
+
+      if (!profiles.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="loading">No profiles found</td></tr>';
+        return;
+      }
+
+      profiles.forEach(profile => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${formatUUID(profile.id)}</td>
+          <td><a href="/profile.html?id=${profile.id}" style="text-transform:capitalize">${profile.name}</a></td>
+          <td style="text-transform:capitalize">${profile.gender || '—'}</td>
+          <td>${profile.age ?? '—'}</td>
+          <td>${profile.country_name || profile.country_id || '—'}</td>
+          <td>${formatDate(profile.created_at)}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function updatePagination(data) {
+      state.totalPages  = data.total_pages || 0;
+      state.currentPage = data.page || 1;
+
+      const total = data.total ?? 0;
+      document.getElementById('pageInfo').textContent =
+        `Page ${state.currentPage} of ${state.totalPages} (${total.toLocaleString()} total)`;
+
+      document.getElementById('prevBtn').disabled = state.currentPage <= 1;
+      document.getElementById('nextBtn').disabled = state.currentPage >= state.totalPages;
+    }
+
+    function prevPage() { if (state.currentPage > 1)                   { state.currentPage--; fetchProfiles(); } }
+    function nextPage() { if (state.currentPage < state.totalPages)     { state.currentPage++; fetchProfiles(); } }
+
+    // ─── CSV Export ──────────────────────────────────────────
+    async function exportCSV() {
+      const btn = document.getElementById('exportBtn');
+      const active = activeFilters(state.filters);
+
+      // Build export params — same filter keys as the list endpoint
+      const exportFilters = { ...state.filters };
+      // Rename country_id key for the export endpoint
+      const params = buildParams({
+        file_format: 'csv',
+        ...exportFilters,
+      });
+
+      // Show loading state
+      btn.disabled = true;
+      btn.innerHTML = `
+        <span class="export-spinner"></span>
+        Exporting…
+      `;
+
+      try {
+        // Must use raw fetch (not apiRequest) so we get the blob,
+        // but we still need credentials:include for the cookie auth.
+        const response = await fetch(
+          `${CONFIG.API_BASE}/api/profiles/export?${params}`,
+          {
+            method: 'GET',
+            credentials: 'include',
+            headers: CONFIG.getHeaders(),
+          }
+        );
+
+        if (!response.ok) {
+          let msg = `Export failed (${response.status})`;
+          try {
+            const body = await response.json();
+            msg = body.message || msg;
+          } catch (_) {}
+          throw new Error(msg);
+        }
+
+        // Pull filename from Content-Disposition header if present
+        const disposition = response.headers.get('Content-Disposition') || '';
+        const match = disposition.match(/filename[^;=\n]*=([^;\n"]+)/);
+        const filename = match
+          ? match[1].trim().replace(/^"|"$/g, '')
+          : `profiles_${new Date().toISOString().slice(0,10)}.csv`;
+
+        const blob = await response.blob();
+        triggerDownload(blob, filename);
+
+        const filterNote = active.length
+          ? ` (${active.length} filter${active.length > 1 ? 's' : ''} applied)`
+          : '';
+        showToast(`Downloaded ${filename}${filterNote}`, 'success');
+
+      } catch (err) {
+        showToast(err.message || 'Export failed. Please try again.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export CSV
+        `;
+      }
+    }
+
+    function triggerDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a   = document.createElement('a');
+      a.href     = url;
+      a.download = filename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      // Clean up after the browser has time to start the download
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 250);
+    }
+
+    // ─── Toast ───────────────────────────────────────────────
+    let toastTimer = null;
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const icon  = type === 'success'
+        ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+             <polyline points="20 6 9 17 4 12"/>
+           </svg>`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+             <circle cx="12" cy="12" r="10"/>
+             <line x1="12" y1="8" x2="12" y2="12"/>
+             <line x1="12" y1="16" x2="12.01" y2="16"/>
+           </svg>`;
+
+      toast.innerHTML    = `${icon} ${message}`;
+      toast.className    = `toast ${type}`;
+      // Force reflow so transition fires even if toast was already showing
+      void toast.offsetWidth;
+      toast.classList.add('show');
+
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 3800);
+    }
+
+    // ─── Init ────────────────────────────────────────────────
+    async function initProfiles() {
+      await initPage();
+      fetchProfiles();
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initProfiles);
+    } else {
+      initProfiles();
+    }
+  </script>
+</body>
+</html>
