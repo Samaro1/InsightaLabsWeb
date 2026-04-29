@@ -10,9 +10,9 @@
 const CONFIG = {
   // API Configuration
   // Check for global override first, then use hardcoded value
-  API_BASE: (typeof window !== 'undefined' && window.INSIGHTA_API_BASE)
+  API_BASE: (typeof window !== 'undefined' && window.INSIGHTA_API_BASE !== undefined)
     ? window.INSIGHTA_API_BASE
-    : 'https://stage1be-production.up.railway.app',
+    : '',
   
   API_VERSION: '1',
   

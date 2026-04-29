@@ -25,10 +25,10 @@
     /**
      * Redirect to GitHub OAuth.
      */
-    function login() {
-      document.getElementById('loading').innerText = 'Redirecting to GitHub…';
-      window.location.href = `${CONFIG.API_BASE}/auth/github?redirect=web`;
-    }
+  function login() {
+    document.getElementById('loading').innerText = 'Redirecting to GitHub…';
+    window.location.href = `/auth/github?redirect=web`;
+  }
 
     /**
      * Check whether a valid session already exists.
@@ -41,22 +41,20 @@
      * If the access_token cookie is still valid the server returns 200
      * and we forward the user straight to the dashboard.
      */
-    async function checkExistingSession() {
-      try {
-        const response = await fetch(`${CONFIG.API_BASE}/auth/me`, {
-          method:      'GET',
-          credentials: 'include',        // sends access_token cookie
-          headers:     CONFIG.getHeaders(),
-        });
-
-        if (response.ok) {
-          window.location.href = '/dashboard.html';
-        }
-        // Any non-2xx (401, 403, network error) — stay on login page
-      } catch {
-        // Network failure — stay on login page
+  async function checkExistingSession() {
+    try {
+      const response = await fetch(`/auth/me`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'X-API-Version': '1' },
+      });
+      if (response.ok) {
+        window.location.href = '/dashboard.html';
       }
+    } catch {
+      // stay on login page
     }
+  }
 
     checkExistingSession();
   </script>
