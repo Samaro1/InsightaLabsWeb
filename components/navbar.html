@@ -1,0 +1,27 @@
+<nav class="navbar">
+  <div class="nav-left">
+    <a href="/dashboard.html" class="logo">
+      <strong>Insighta</strong>
+    </a>
+  </div>
+
+  <div class="nav-right">
+    <a href="/dashboard.html">Dashboard</a>
+    <a href="/profiles.html">Profiles</a>
+    <a href="/search.html">Search</a>
+    <a href="/account.html">Account</a>
+    <button class="nav-logout-btn" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<script>
+  (function () {
+    const path = window.location.pathname;
+    document.querySelectorAll('.nav-right a').forEach(function (link) {
+      const href = link.getAttribute('href');
+      if (href && path === href) {
+        link.classList.add('active');
+      }
+    });
+  })();
+</script>
