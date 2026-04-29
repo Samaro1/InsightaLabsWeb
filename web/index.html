@@ -1,16 +1,64 @@
-web/
-├── index.html          (Login)
-├── dashboard.html
-├── profiles.html
-├── profile.html
-├── search.html
-├── account.html
-│
-├── js/
-│   ├── api.js
-│   ├── auth.js
-│   ├── profiles.js
-│   └── utils.js
-│
-└── css/
-    └── styles.css
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Insighta Labs+</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-box">
+      <h1>Insighta</h1>
+      <p>Secure profile intelligence platform</p>
+
+      <button onclick="login()">Continue with GitHub</button>
+
+      <div class="loading" id="loading"></div>
+    </div>
+  </div>
+  <script src="/js/env.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/utils.js"></script>
+
+  <script>
+    /**
+     * Redirect to GitHub OAuth.
+     */
+    function login() {
+      document.getElementById('loading').innerText = 'Redirecting to GitHub…';
+      window.location.href = `${CONFIG.API_BASE}/auth/github?redirect=web`;
+    }
+
+    /**
+     * Check whether a valid session already exists.
+     *
+     * Uses a raw fetch instead of apiRequest() or checkAuth() so that:
+     *   1. A 401 response is silently ignored — no redirect loop back to
+     *      this same page (which is what apiRequest's 401 handler does).
+     *   2. The proactive refresh timer is never started on the login page.
+     *
+     * If the access_token cookie is still valid the server returns 200
+     * and we forward the user straight to the dashboard.
+     */
+    async function checkExistingSession() {
+      try {
+        const response = await fetch(`${CONFIG.API_BASE}/auth/me`, {
+          method:      'GET',
+          credentials: 'include',        // sends access_token cookie
+          headers:     CONFIG.getHeaders(),
+        });
+
+        if (response.ok) {
+          window.location.href = '/dashboard.html';
+        }
+        // Any non-2xx (401, 403, network error) — stay on login page
+      } catch {
+        // Network failure — stay on login page
+      }
+    }
+
+    checkExistingSession();
+  </script>
+</body>
+</html>
