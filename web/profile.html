@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile Details - Insighta</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <main class="container">
+    <h1>Profile Details</h1>
+
+    <div id="profileCard" class="card">
+      <p class="loading">Loading profile...</p>
+    </div>
+
+    <div style="margin-top: 1.5rem;">
+      <button onclick="window.history.back()">← Back</button>
+    </div>
+  </main>
+
+  <!-- ── FAB: Create new profile (admin only) ── -->
+  <button class="fab" id="fabCreate" data-admin-only onclick="openCreateModal()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+    Create profile
+  </button>
+
+  <!-- ══════════════════════════════════════
+       CREATE PROFILE MODAL
+  ══════════════════════════════════════ -->
+  <div class="modal-backdrop" id="createModalBackdrop" onclick="handleBackdropClick(event, 'createModalBackdrop')">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="createModalTitle">
+      <div class="modal-header">
+        <h2 id="createModalTitle">Create new profile</h2>
+        <button class="modal-close" onclick="closeCreateModal()" aria-label="Close">×</button>
+      </div>
+
+      <div class="modal-feedback" id="createFeedback"></div>
+
+      <div class="modal-form">
+        <div class="field">
+          <label for="createNameInput">Full name</label>
+          <input
+            type="text"
+            id="createNameInput"
+            placeholder="e.g. Amara Nwosu"
+            autocomplete="off"
+            onkeydown="if(event.key==='Enter') submitCreate()"
+          />
+          <p class="form-hint">
+            Gender, age, and nationality will be inferred from the name via external APIs.
+          </p>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeCreateModal()">Cancel</button>
+        <button class="btn-submit" id="createSubmitBtn" onclick="submitCreate()">Create profile</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       DELETE CONFIRM MODAL
+  ══════════════════════════════════════ -->
+  <div class="modal-backdrop" id="deleteModalBackdrop" onclick="handleBackdropClick(event, 'deleteModalBackdrop')">
+    <div class="modal danger" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+      <div class="modal-header">
+        <h2 id="deleteModalTitle">Delete profile?</h2>
+        <button class="modal-close" onclick="closeDeleteModal()" aria-label="Close">×</button>
+      </div>
+
+      <p style="color: var(--color-text-secondary); margin-bottom: 0.5rem; font-size: 0.95rem;">
+        You are about to permanently delete:
+      </p>
+      <p style="color: var(--color-text-primary); font-weight: 600; font-size: 1rem; margin-bottom: 1.5rem;" id="deleteTargetName">—</p>
+      <p style="color: var(--color-text-secondary); font-size: 0.88rem; margin-bottom: 1.5rem;">
+        This action cannot be undone. The profile will be removed from the database immediately.
+      </p>
+
+      <div class="modal-feedback" id="deleteFeedback"></div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+        <button class="btn-submit btn-confirm-delete" id="deleteConfirmBtn" onclick="confirmDelete()"
+          style="background: var(--color-error);">
+          Delete permanently
+        </button>
+      </div>
+    </div>
+  </div>
+  <script src="/js/env.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/auth.js"></script>
+
+  <script>
+    // ─── State ───────────────────────────────
+    let currentProfileId = null;
+    let currentUser = null;
+
+    // ─── Boot ────────────────────────────────
+    async function boot() {
+      currentUser = await initPage();
+      if (!currentUser) return;
+
+      await loadProfile();
+    }
+
+    // ─── Profile loading ──────────────────────
+    function getProfileId() {
+      return new URLSearchParams(window.location.search).get('id');
+    }
+
+    async function loadProfile() {
+      currentProfileId = getProfileId();
+
+      if (!currentProfileId) {
+        showError('profileCard', 'No profile ID provided.');
+        return;
+      }
+
+      showLoading('profileCard', 'Loading profile details...');
+
+      try {
+        const data = await apiRequest(`/api/profiles/${currentProfileId}`);
+        renderProfile(data.data || data);
+      } catch (err) {
+        showError('profileCard', err.message);
+      }
+    }
+
+    // ─── Render profile ───────────────────────
+    function renderProfile(profile) {
+      const genderPct = profile.gender_probability
+        ? (profile.gender_probability * 100).toFixed(1)
+        : null;
+      const countryPct = profile.country_probability
+        ? (profile.country_probability * 100).toFixed(1)
+        : null;
+
+      const adminStrip = currentUser?.role === 'admin'
+        ? `<div class="admin-actions">
+             <span class="admin-tag">Admin</span>
+             <button class="btn-delete" onclick="openDeleteModal('${profile.id}', '${profile.name}')">
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                 <polyline points="3 6 5 6 21 6"/>
+                 <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                 <path d="M10 11v6"/><path d="M14 11v6"/>
+                 <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+               </svg>
+               Delete profile
+             </button>
+           </div>`
+        : '';
+
+      document.getElementById('profileCard').innerHTML = `
+        <p class="profile-name-heading">${profile.name}</p>
+        <p class="profile-id" style="margin-top:0.4rem;">${profile.id}</p>
+
+        <div class="profile-grid">
+
+          <div class="profile-field">
+            <p>Gender</p>
+            <p class="value">${profile.gender || '—'}</p>
+            ${genderPct ? `
+              <div class="prob-bar-wrap">
+                <div class="prob-bar-fill" style="width:${genderPct}%"></div>
+              </div>
+              <p class="sub">${genderPct}% confidence</p>` : ''}
+          </div>
+
+          <div class="profile-field">
+            <p>Age</p>
+            <p class="value">${profile.age ?? '—'}</p>
+            <p class="sub">${profile.age_group ? profile.age_group.charAt(0).toUpperCase() + profile.age_group.slice(1) : ''}</p>
+          </div>
+
+          <div class="profile-field">
+            <p>Country</p>
+            <p class="value">${profile.country_name || '—'}</p>
+            <p class="sub">${profile.country_id || ''}</p>
+            ${countryPct ? `
+              <div class="prob-bar-wrap">
+                <div class="prob-bar-fill" style="width:${countryPct}%"></div>
+              </div>
+              <p class="sub">${countryPct}% confidence</p>` : ''}
+          </div>
+
+          <div class="profile-field">
+            <p>Created</p>
+            <p class="value">${formatDate(profile.created_at)}</p>
+          </div>
+
+        </div>
+
+        ${adminStrip}
+      `;
+    }
+
+    // ════════════════════════════════════════
+    // CREATE MODAL
+    // ════════════════════════════════════════
+    function openCreateModal() {
+      document.getElementById('createNameInput').value = '';
+      setFeedback('createFeedback', '', '');
+      setSubmitting('createSubmitBtn', 'Create profile', false);
+      document.getElementById('createModalBackdrop').classList.add('open');
+      setTimeout(() => document.getElementById('createNameInput').focus(), 120);
+    }
+
+    function closeCreateModal() {
+      document.getElementById('createModalBackdrop').classList.remove('open');
+    }
+
+    async function submitCreate() {
+      const name = document.getElementById('createNameInput').value.trim();
+
+      if (!name) {
+        setFeedback('createFeedback', 'Please enter a name.', 'error');
+        return;
+      }
+
+      setSubmitting('createSubmitBtn', 'Creating…', true);
+      setFeedback('createFeedback', '', '');
+
+      try {
+        const data = await apiRequest('/api/profiles', {
+          method: 'POST',
+          body: JSON.stringify({ name }),
+        });
+
+        const profile = data.data;
+        setFeedback(
+          'createFeedback',
+          `Profile "${profile.name}" created successfully.`,
+          'success'
+        );
+        setSubmitting('createSubmitBtn', 'Create profile', false);
+
+        // After short delay, navigate to the new profile
+        setTimeout(() => {
+          window.location.href = `/profile.html?id=${profile.id}`;
+        }, 1000);
+
+      } catch (err) {
+        setFeedback('createFeedback', err.message || 'Failed to create profile.', 'error');
+        setSubmitting('createSubmitBtn', 'Create profile', false);
+      }
+    }
+
+    // ════════════════════════════════════════
+    // DELETE MODAL
+    // ════════════════════════════════════════
+    let pendingDeleteId = null;
+
+    function openDeleteModal(profileId, profileName) {
+      pendingDeleteId = profileId;
+      document.getElementById('deleteTargetName').textContent =
+        profileName.charAt(0).toUpperCase() + profileName.slice(1);
+      setFeedback('deleteFeedback', '', '');
+      setSubmitting('deleteConfirmBtn', 'Delete permanently', false);
+      document.getElementById('deleteModalBackdrop').classList.add('open');
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('deleteModalBackdrop').classList.remove('open');
+      pendingDeleteId = null;
+    }
+
+    async function confirmDelete() {
+      if (!pendingDeleteId) return;
+
+      setSubmitting('deleteConfirmBtn', 'Deleting…', true);
+      setFeedback('deleteFeedback', '', '');
+
+      try {
+        await apiRequest(`/api/profiles/${pendingDeleteId}`, { method: 'DELETE' });
+
+        // 204 No Content → success; navigate away
+        closeDeleteModal();
+        window.location.href = '/profiles.html';
+
+      } catch (err) {
+        setFeedback('deleteFeedback', err.message || 'Failed to delete profile.', 'error');
+        setSubmitting('deleteConfirmBtn', 'Delete permanently', false);
+      }
+    }
+
+    // ════════════════════════════════════════
+    // HELPERS
+    // ════════════════════════════════════════
+    function handleBackdropClick(event, backdropId) {
+      // Close only when clicking the dark overlay, not the modal itself
+      if (event.target.id === backdropId) {
+        if (backdropId === 'createModalBackdrop') closeCreateModal();
+        else closeDeleteModal();
+      }
+    }
+
+    function setFeedback(elementId, message, type) {
+      const el = document.getElementById(elementId);
+      el.textContent = message;
+      el.className = 'modal-feedback';
+      if (type) el.classList.add('show', type);
+    }
+
+    function setSubmitting(btnId, label, isSubmitting) {
+      const btn = document.getElementById(btnId);
+      btn.disabled = isSubmitting;
+      btn.innerHTML = isSubmitting
+        ? `<span class="spinner"></span> ${label}`
+        : label;
+    }
+
+    // ─── Keyboard: Escape closes modals ──────
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeCreateModal();
+        closeDeleteModal();
+      }
+    });
+
+    // ─── Init ────────────────────────────────
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot);
+    } else {
+      boot();
+    }
+  </script>
+</body>
+</html>
