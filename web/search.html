@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Search Profiles - Insighta</title>
   <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="stylesheet" href="/css/search.css" />
   <style>
     /* ── Query chips ── */
     .chips-label {
@@ -132,7 +133,7 @@
         </svg>`;
 
       container.innerHTML = EXAMPLE_QUERIES.map(q =>
-        `<button class="chip" onclick="useChip(${JSON.stringify(q)})">
+        `<button class="chip" onclick='useChip(${JSON.stringify(q)})'>
           ${arrowSVG}${q}
         </button>`
       ).join('');
