@@ -12,12 +12,12 @@ npm run serve        # http://localhost:8080
 
 ## Features
 
-- 🔑 **GitHub Login** - Secure authentication via GitHub
-- 🔍 **Search** - Find profiles using natural language (e.g., "young females from Nigeria")
-- 📊 **Dashboard** - View statistics and recent profiles
-- 📋 **Filtering** - Filter by gender, country, age, and more
-- 📥 **Export** - Download profile data as CSV
-- 🎯 **Role-Based** - Admin and Analyst permissions
+- **GitHub Login** - Secure authentication via GitHub
+- **Search** - Find profiles using natural language (e.g., "young females from Nigeria")
+- **Dashboard** - View statistics and recent profiles
+- **Filtering** - Filter by gender, country, age, and more
+- **Export** - Download profile data as CSV
+- **Role-Based** - Admin and Analyst permissions
 
 ## Project Structure
 
