@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - Insighta</title>
+  <link rel="stylesheet" href="/css/dashboard.css" />
+  <style>
+  </style>
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <main class="container">
+
+    <!-- Welcome strip -->
+    <div class="welcome-strip" id="welcomeStrip">
+      <div class="avatar-circle" id="avatarEl">—</div>
+      <div class="welcome-text">
+        <p class="welcome-name" id="welcomeName">Loading…</p>
+        <p class="welcome-role" id="welcomeRole"></p>
+      </div>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="section-row">
+      <h2>Overview</h2>
+      <span id="lastUpdated" style="font-size:0.78rem;color:var(--color-text-secondary);"></span>
+    </div>
+    <div class="stats-grid" id="statsGrid">
+      <!-- skeleton cards while loading -->
+      <div class="stat-card stat-skeleton" style="--accent:#2563eb">
+        <p class="stat-label">Total profiles</p>
+        <div class="skeleton sk-val"></div>
+        <div class="skeleton sk-sub"></div>
+      </div>
+      <div class="stat-card stat-skeleton" style="--accent:#10b981">
+        <p class="stat-label">Gender split</p>
+        <div class="skeleton sk-val"></div>
+        <div class="skeleton sk-sub"></div>
+      </div>
+      <div class="stat-card stat-skeleton" style="--accent:#f59e0b">
+        <p class="stat-label">Top country</p>
+        <div class="skeleton sk-val"></div>
+        <div class="skeleton sk-sub"></div>
+      </div>
+      <div class="stat-card stat-skeleton" style="--accent:#8b5cf6">
+        <p class="stat-label">Age groups</p>
+        <div class="skeleton sk-val"></div>
+        <div class="skeleton sk-sub"></div>
+      </div>
+    </div>
+
+    <!-- Recent profiles -->
+    <div class="section-row">
+      <h2>Recent profiles</h2>
+      <a href="/profiles.html">View all →</a>
+    </div>
+    <div class="recent-table-wrap">
+      <table id="recentTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Gender</th>
+            <th>Age</th>
+            <th>Country</th>
+            <th>Added</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="5" class="loading">Loading recent profiles…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Quick links -->
+    <div class="section-row">
+      <h2>Quick actions</h2>
+    </div>
+    <div class="quick-links">
+      <a href="/profiles.html" class="quick-link">
+        <div class="quick-link-icon">
+          <svg fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <p class="quick-link-title">Browse profiles</p>
+        <p class="quick-link-desc">Filter, sort, paginate</p>
+      </a>
+      <a href="/search.html" class="quick-link">
+        <div class="quick-link-icon">
+          <svg fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </div>
+        <p class="quick-link-title">Search profiles</p>
+        <p class="quick-link-desc">Natural language queries</p>
+      </a>
+      <a href="/profiles.html?export=1" class="quick-link" id="exportLink">
+        <div class="quick-link-icon">
+          <svg fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </div>
+        <p class="quick-link-title">Export CSV</p>
+        <p class="quick-link-desc">Download all profiles</p>
+      </a>
+      <a href="/account.html" class="quick-link">
+        <div class="quick-link-icon">
+          <svg fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+        <p class="quick-link-title">Account</p>
+        <p class="quick-link-desc">Profile &amp; settings</p>
+      </a>
+    </div>
+
+  </main>
+  <script src="/js/env.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/auth.js"></script>
+
+  <script>
+    // ─── Helpers ──────────────────────────────────────────
+    function pct(n, total) {
+      return total ? Math.round((n / total) * 100) : 0;
+    }
+
+    function topN(map, n) {
+      return Object.entries(map)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, n);
+    }
+
+    function barColor(i) {
+      const colors = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444'];
+      return colors[i % colors.length];
+    }
+
+    // ─── Fetch all profiles (up to 2 pages of 50) ─────────
+    async function fetchProfileSample() {
+      const pages = await Promise.all([
+        apiRequest('/api/profiles?limit=50&page=1'),
+        apiRequest('/api/profiles?limit=50&page=2').catch(() => null),
+      ]);
+
+      const first = pages[0];
+      const total = first.total || 0;
+      let profiles = [...(first.data || [])];
+      if (pages[1]?.data) profiles = profiles.concat(pages[1].data);
+
+      return { profiles, total };
+    }
+
+    // ─── Compute stats from sample ─────────────────────────
+    function computeStats(profiles, total) {
+      const genderMap = {};
+      const countryMap = {};
+      const ageGroupMap = {};
+      let ageSum = 0, ageCount = 0;
+
+      for (const p of profiles) {
+        if (p.gender) genderMap[p.gender] = (genderMap[p.gender] || 0) + 1;
+        if (p.country_name) countryMap[p.country_name] = (countryMap[p.country_name] || 0) + 1;
+        if (p.age_group) ageGroupMap[p.age_group] = (ageGroupMap[p.age_group] || 0) + 1;
+        if (p.age) { ageSum += p.age; ageCount++; }
+      }
+
+      const sampleSize = profiles.length;
+      const topGenders  = topN(genderMap, 2);
+      const topCountries = topN(countryMap, 4);
+      const topAgeGroups = topN(ageGroupMap, 4);
+      const avgAge = ageCount ? Math.round(ageSum / ageCount) : null;
+
+      return { total, sampleSize, genderMap, topGenders, topCountries, topAgeGroups, avgAge };
+    }
+
+    // ─── Render stat cards ─────────────────────────────────
+    function renderStats(s) {
+      const { total, sampleSize, topGenders, topCountries, topAgeGroups, avgAge } = s;
+
+      const dominantGender = topGenders[0];
+      const dominantCountry = topCountries[0];
+      const dominantAgeGroup = topAgeGroups[0];
+
+      const genderPct = dominantGender ? pct(dominantGender[1], sampleSize) : '—';
+      const countryPct = dominantCountry ? pct(dominantCountry[1], sampleSize) : '—';
+
+      // Build mini bars HTML
+      function miniBars(entries, maxVal) {
+        return `<div class="mini-bars">` +
+          entries.map(([label, val], i) => {
+            const h = Math.max(4, Math.round((val / maxVal) * 36));
+            const shortLabel = label.length > 6 ? label.slice(0, 6) + '…' : label;
+            return `<div class="mini-bar-group">
+              <div class="mini-bar" style="height:${h}px;background:${barColor(i)};"></div>
+              <span class="mini-bar-label">${shortLabel}</span>
+            </div>`;
+          }).join('') +
+        `</div>`;
+      }
+
+      const genderMaxVal = topGenders.length ? topGenders[0][1] : 1;
+      const countryMaxVal = topCountries.length ? topCountries[0][1] : 1;
+      const ageMaxVal = topAgeGroups.length ? topAgeGroups[0][1] : 1;
+
+      document.getElementById('statsGrid').innerHTML = `
+        <!-- Total profiles -->
+        <div class="stat-card" style="--accent:#2563eb">
+          <p class="stat-label">Total profiles</p>
+          <p class="stat-value">${total.toLocaleString()}</p>
+          <p class="stat-sub">${sampleSize < total ? `${sampleSize} sampled for breakdown` : 'Full dataset analysed'}</p>
+        </div>
+
+        <!-- Gender split -->
+        <div class="stat-card" style="--accent:#10b981">
+          <p class="stat-label">Gender split</p>
+          <p class="stat-value">${genderPct}%</p>
+          <p class="stat-sub">${dominantGender ? dominantGender[0].charAt(0).toUpperCase() + dominantGender[0].slice(1) + ' dominant in sample' : 'No data'}</p>
+          ${topGenders.length ? miniBars(topGenders, genderMaxVal) : ''}
+        </div>
+
+        <!-- Top country -->
+        <div class="stat-card" style="--accent:#f59e0b">
+          <p class="stat-label">Top country</p>
+          <p class="stat-value" style="font-size:${dominantCountry && dominantCountry[0].length > 8 ? '1.25rem' : '1.9rem'}">
+            ${dominantCountry ? dominantCountry[0] : '—'}
+          </p>
+          <p class="stat-sub">${dominantCountry ? countryPct + '% of sample' : 'No data'}</p>
+          ${topCountries.length ? miniBars(topCountries, countryMaxVal) : ''}
+        </div>
+
+        <!-- Age groups -->
+        <div class="stat-card" style="--accent:#8b5cf6">
+          <p class="stat-label">Age groups</p>
+          <p class="stat-value" style="font-size:1.35rem;line-height:1.15">
+            ${dominantAgeGroup ? dominantAgeGroup[0].charAt(0).toUpperCase() + dominantAgeGroup[0].slice(1) : '—'}
+          </p>
+          <p class="stat-sub">${avgAge ? `Avg age ${avgAge} in sample` : 'Most common group'}</p>
+          ${topAgeGroups.length ? miniBars(topAgeGroups, ageMaxVal) : ''}
+        </div>
+      `;
+
+      const now = new Date();
+      document.getElementById('lastUpdated').textContent =
+        `Updated ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+
+    // ─── Render recent profiles table ──────────────────────
+    function renderRecent(profiles) {
+      const recent = [...profiles]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 8);
+
+      const tbody = document.querySelector('#recentTable tbody');
+
+      if (!recent.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="loading">No profiles found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = recent.map(p => `
+        <tr>
+          <td><a href="/profile.html?id=${p.id}" style="text-transform:capitalize">${p.name}</a></td>
+          <td style="text-transform:capitalize">${p.gender || '—'}</td>
+          <td>${p.age ?? '—'}</td>
+          <td>${p.country_name || p.country_id || '—'}</td>
+          <td>${formatDate(p.created_at)}</td>
+        </tr>
+      `).join('');
+    }
+
+    // ─── Render welcome strip ──────────────────────────────
+    function renderWelcome(user) {
+      const initials = (user.username || 'U')
+        .split(/[\s_-]/)
+        .map(w => w[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+
+      const avatarEl = document.getElementById('avatarEl');
+      if (user.avatar_url) {
+        avatarEl.innerHTML = `<img src="${user.avatar_url}" alt="${user.username}" />`;
+      } else {
+        avatarEl.textContent = initials;
+      }
+
+      document.getElementById('welcomeName').innerHTML =
+        `Welcome, ${user.username || 'there'}
+         <span class="role-badge">${user.role}</span>`;
+      document.getElementById('welcomeRole').textContent =
+        user.email || '';
+    }
+
+    // ─── Main init ─────────────────────────────────────────
+    async function initDashboard() {
+      const user = await initPage();
+      if (!user) return;
+
+      renderWelcome(user);
+
+      try {
+        const { profiles, total } = await fetchProfileSample();
+        const stats = computeStats(profiles, total);
+        renderStats(stats);
+        renderRecent(profiles);
+      } catch (err) {
+        document.getElementById('statsGrid').innerHTML =
+          `<div class="stat-card" style="--accent:#ef4444;grid-column:1/-1">
+             <p class="stat-label">Error</p>
+             <p class="stat-sub">${err.message || 'Could not load profile data.'}</p>
+           </div>`;
+        document.querySelector('#recentTable tbody').innerHTML =
+          `<tr><td colspan="5" class="error">${err.message || 'Failed to load profiles.'}</td></tr>`;
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initDashboard);
+    } else {
+      initDashboard();
+    }
+  </script>
+</body>
+</html>
