@@ -1,0 +1,1 @@
+window.INSIGHTA_API_BASE = "https://stage1be-production.up.railway.app";
