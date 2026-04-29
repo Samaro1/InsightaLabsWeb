@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel - Insighta</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body>
+  <div id="navbar"></div>
+
+  <main class="container">
+    <!-- Admin Header -->
+    <div class="admin-header">
+      <div>
+        <h1>Admin Panel</h1>
+        <p class="subtitle">Manage users and system settings</p>
+      </div>
+      <div class="admin-badge">👑 Administrator</div>
+    </div>
+
+    <!-- Create User Section -->
+    <section class="admin-section">
+      <h2>Create New User</h2>
+      <form id="createUserForm" class="form-group">
+        <div class="form-row">
+          <div class="form-field">
+            <label for="userEmail">Email Address</label>
+            <input 
+              type="email" 
+              id="userEmail" 
+              name="email" 
+              placeholder="user@example.com"
+              required
+            />
+          </div>
+          <div class="form-field">
+            <label for="userRole">Role</label>
+            <select id="userRole" name="role" required>
+              <option value="analyst">Analyst</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-field">
+            <label for="userFirstName">First Name</label>
+            <input 
+              type="text" 
+              id="userFirstName" 
+              name="first_name" 
+              placeholder="John"
+              required
+            />
+          </div>
+          <div class="form-field">
+            <label for="userLastName">Last Name</label>
+            <input 
+              type="text" 
+              id="userLastName" 
+              name="last_name" 
+              placeholder="Doe"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Create User</button>
+          <div id="createUserStatus" class="form-status"></div>
+        </div>
+      </form>
+    </section>
+
+    <!-- Users Table Section -->
+    <section class="admin-section">
+      <div class="section-header">
+        <h2>User Management</h2>
+        <div class="search-box">
+          <input 
+            type="text" 
+            id="searchUsers" 
+            placeholder="Search by name or email…"
+            class="search-input"
+          />
+        </div>
+      </div>
+
+      <div class="users-table-wrap">
+        <table id="usersTable" class="users-table">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Created</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="loading-row">
+              <td colspan="6" class="loading">Loading users…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="usersEmptyState" class="empty-state" style="display: none;">
+        <p>No users found</p>
+      </div>
+    </section>
+
+    <!-- System Info Section -->
+    <section class="admin-section">
+      <h2>System Information</h2>
+      <div class="info-grid">
+        <div class="info-card">
+          <p class="info-label">Total Users</p>
+          <p class="info-value" id="totalUsers">—</p>
+        </div>
+        <div class="info-card">
+          <p class="info-label">Admin Users</p>
+          <p class="info-value" id="adminCount">—</p>
+        </div>
+        <div class="info-card">
+          <p class="info-label">Analyst Users</p>
+          <p class="info-value" id="analystCount">—</p>
+        </div>
+        <div class="info-card">
+          <p class="info-label">Last Updated</p>
+          <p class="info-value text-sm" id="lastUpdated">—</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal for delete confirmation -->
+  <div id="deleteModal" class="modal">
+    <div class="modal-content">
+      <h3>Delete User?</h3>
+      <p id="deleteModalMessage">Are you sure you want to delete this user? This action cannot be undone.</p>
+      <div class="modal-actions">
+        <button id="deleteCancel" class="btn btn-secondary">Cancel</button>
+        <button id="deleteConfirm" class="btn btn-error">Delete User</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load shared utilities -->
+  <script src="/js/config.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>
