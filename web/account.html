@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account - Insighta</title>
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <!-- Reusable navbar component -->
+  <div id="navbar"></div>
+
+  <!-- Main content -->
+  <main class="container">
+    <h1>Account Settings</h1>
+
+    <!-- User Information Card -->
+    <div id="accountCard" class="card">
+      <h2>Loading account information...</h2>
+    </div>
+
+    <!-- Logout Button -->
+    <button class="logout-btn" onclick="handleLogout()">Logout</button>
+  </main>
+  <script src="/js/env.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/utils.js"></script>
+  <script src="/js/auth.js"></script>
+
+  <script>
+    /**
+     * Fetch and display user account information
+     */
+    async function loadAccount() {
+      const user = await initPage();
+
+      if (!user) return;
+
+      renderAccount(user);
+    }
+
+    /**
+     * Render user account information
+     */
+    function renderAccount(user) {
+      const html = `
+        <h2>Account Information</h2>
+        <p><strong>Username:</strong> ${user.username || '-'}</p>
+        <p><strong>Email:</strong> ${user.email || '-'}</p>
+        <p><strong>Role:</strong> <span class="badge">${user.role || '-'}</span></p>
+        <p><strong>Status:</strong> ${user.is_active ? '✓ Active' : '⚠ Inactive'}</p>
+        <p><strong>Member Since:</strong> ${formatDate(user.created_at)}</p>
+        <p><strong>Last Login:</strong> ${formatDate(user.last_login_at)}</p>
+      `;
+
+      document.getElementById('accountCard').innerHTML = html;
+    }
+
+    /**
+     * Handle logout with confirmation
+     */
+    async function handleLogout() {
+      if (confirm('Are you sure you want to logout?')) {
+        await logout();
+      }
+    }
+
+    /**
+     * Initialize page
+     */
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadAccount);
+    } else {
+      loadAccount();
+    }
+  </script>
+
+  <style>
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      background-color: var(--color-primary);
+      border-radius: 4px;
+      font-size: 0.9rem;
+      text-transform: capitalize;
+    }
+  </style>
+</body>
+</html>
